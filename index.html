@@ -71,6 +71,15 @@
   @keyframes bump { 0% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
   .row.winner .who { box-shadow: inset 1.2vmin 0 0 #ffd400; }
+  .result-tag {
+    display: none; align-self: flex-start; margin-top: .8vmin; padding: .3vmin 1vmin;
+    background: #ffd400; color: var(--ink); font-size: 2.4vmin; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .row.winner .result-tag:not(:empty) { display: block; }
+  body.finished .cell { cursor: default; }
+  body.finished .cell:hover { filter: none; }
+  body.finished .clock { cursor: default; }
 
   .bottom {
     display: grid; grid-template-columns: auto minmax(0, 1fr);
@@ -128,6 +137,52 @@
   .credit a { color: inherit; }
   .credit a:hover { opacity: 1; color: #fff; }
   button { touch-action: manipulation; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ---------- Dialogs ---------- */
+  .dlg {
+    background: var(--panel); color: #fff; border: 1px solid #3a3e47; border-radius: 12px;
+    padding: 18px; width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px);
+    font-family: system-ui, sans-serif; font-size: 14px;
+  }
+  .dlg::backdrop { background: rgba(0,0,0,.65); }
+  .dlg h2 { margin: 0 0 4px; font-size: 18px; }
+  .dlg h4 { margin: 16px 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+  .dlg .sub { margin: 0; font-size: 12px; opacity: .6; text-transform: uppercase; letter-spacing: .04em; }
+  .dlg .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .dlg .actions .minus { margin-right: auto; }
+  .pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .pick button { display: grid; gap: 2px; text-align: left; padding: 12px; border: 0; min-width: 0; }
+  .pick button[data-winner="white"] { background: var(--white-row); color: var(--ink); }
+  .pick button[data-winner="blue"]  { background: var(--blue-row); }
+  .pick .nm { font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pick .sc { font-size: 12px; font-weight: 500; opacity: .75; }
+  .pick button[aria-pressed="true"] { outline: 3px solid #ffd400; outline-offset: 2px; }
+  .pick.has-choice button[aria-pressed="false"] { opacity: .45; }
+  .methods { display: flex; flex-wrap: wrap; gap: 6px; }
+  .methods button[aria-pressed="true"] { background: #ffd400; color: var(--ink); border-color: transparent; }
+
+  .empty { opacity: .6; margin: 18px 0 0; }
+  .results { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; max-height: 60vh; overflow: auto; }
+  .results li { background: var(--panel-2); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; }
+  .results .meta { font-size: 11px; opacity: .6; text-transform: uppercase; letter-spacing: .03em; }
+  .results .f { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+  .results .f .chip { width: 10px; height: 10px; }
+  .results .f.white .chip { background: #fff; }
+  .results .f.blue  .chip { background: var(--blue-row); }
+  .results .f .nm { text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .results .f .sc { font-variant-numeric: tabular-nums; opacity: .8; font-size: 12px; }
+  .results .f.win .nm { font-weight: 700; }
+  .results .f .won:not(:empty) {
+    padding: 1px 6px; border-radius: 3px; background: #ffd400; color: var(--ink);
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+  }
+  @media (max-width: 520px) {
+    .results .f { grid-template-columns: 10px minmax(0, 1fr) auto; row-gap: 0; }
+    .results .f .sc { grid-column: 2 / -1; }
+  }
+  .results .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; }
+  .results .foot button { padding: 4px 8px; min-height: 0; font-size: 11px; }
 
   /* ---------- Touch devices ---------- */
   @media (hover: none) {
@@ -159,6 +214,7 @@
     .cell { font-size: 21vw; }
     .cell .lbl { font-size: 2.8vw; top: 1vw; left: 1.6vw; }
     .row.winner .who { box-shadow: inset 2vw 0 0 #ffd400; }
+    .result-tag { font-size: 3vw; padding: .4vw 1.4vw; margin-top: .8vw; }
     .bottom { grid-template-columns: auto minmax(0, 1fr); }
     .clock { font-size: 13vw; min-width: 0; margin: 1.6vw; padding: 1vw 3vw; }
     .info { padding: 1.6vw 3vw 1.6vw 1vw; }
@@ -174,6 +230,7 @@
     <div class="who">
       <div class="name" contenteditable spellcheck="false" data-field="white.name"></div>
       <div class="team" contenteditable spellcheck="false" data-field="white.team"></div>
+      <div class="result-tag" data-side="white"></div>
     </div>
     <div class="cell points" data-side="white" data-kind="points" title="Clique +1 · Botão direito −1"><span class="lbl">PTS</span><span class="v"></span></div>
     <div class="cell adv"    data-side="white" data-kind="adv"    title="Clique +1 · Botão direito −1"><span class="lbl">VANT</span><span class="v"></span></div>
@@ -184,6 +241,7 @@
     <div class="who">
       <div class="name" contenteditable spellcheck="false" data-field="blue.name"></div>
       <div class="team" contenteditable spellcheck="false" data-field="blue.team"></div>
+      <div class="result-tag" data-side="blue"></div>
     </div>
     <div class="cell points" data-side="blue" data-kind="points" title="Clique +1 · Botão direito −1"><span class="lbl">PTS</span><span class="v"></span></div>
     <div class="cell adv"    data-side="blue" data-kind="adv"    title="Clique +1 · Botão direito −1"><span class="lbl">VANT</span><span class="v"></span></div>
@@ -228,8 +286,12 @@
       <button id="swap">Trocar lados</button>
       <button id="fullscreen">Tela cheia</button>
     </div>
+    <div class="btns">
+      <button id="finish" class="r">Encerrar luta</button>
+      <button id="showResults">Resultados</button>
+    </div>
     <div class="hint">
-      Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis.
+      Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis. <b>Encerrar luta</b> registra o resultado na lista.
       <span class="hint-keys"><br>
       <kbd>Espaço</kbd> tempo · <kbd>Q W E</kbd> branco +2/+3/+4 · <kbd>A</kbd>/<kbd>S</kbd> branco vant/pun ·
       <kbd>I O P</kbd> azul +2/+3/+4 · <kbd>K</kbd>/<kbd>L</kbd> azul vant/pun ·
@@ -257,6 +319,37 @@
   <div class="credit">Feito por <a href="https://pedrohmac.com" target="_blank" rel="noopener">pedrohmac.com</a></div>
 </footer>
 
+<dialog class="dlg" id="finishDlg">
+  <form method="dialog">
+    <h2>Encerrar luta</h2>
+    <p class="sub" id="finishSub"></p>
+    <h4>Vencedor</h4>
+    <div class="pick" id="winnerPick">
+      <button type="button" data-winner="white"><span class="nm"></span><span class="sc"></span></button>
+      <button type="button" data-winner="blue"><span class="nm"></span><span class="sc"></span></button>
+    </div>
+    <h4>Resultado por</h4>
+    <div class="methods" id="methodPick"></div>
+    <div class="actions">
+      <button value="cancel">Cancelar</button>
+      <button type="button" class="g" id="confirmFinish">Salvar resultado</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="resultsDlg">
+  <form method="dialog">
+    <h2>Resultados</h2>
+    <p class="sub">Lutas encerradas neste aparelho</p>
+    <p class="empty" id="resultsEmpty">Nenhuma luta encerrada ainda.</p>
+    <ol class="results" id="resultsList"></ol>
+    <div class="actions">
+      <button type="button" class="minus" id="clearResults">Limpar lista</button>
+      <button value="close" autofocus>Fechar</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 (() => {
   const STORE = "matscore.v2";
@@ -267,6 +360,7 @@
     category: "Master 3 / Masculino / Azul / Pena",
     durationSec: 300,
     remainingMs: 300000,
+    result: null, // { winner, method } once the fight is finished
   });
 
   let state;
@@ -275,10 +369,17 @@
   const history = [];
 
   const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {} };
+
+  const RESULTS = "matscore.results";
+  let results;
+  try { results = JSON.parse(localStorage.getItem(RESULTS)) || []; }
+  catch { results = []; }
+  const saveResults = () => { try { localStorage.setItem(RESULTS, JSON.stringify(results)); } catch {} };
   const snapshot = () => JSON.stringify({ white: state.white, blue: state.blue });
 
   // ---------- Scores ----------
   function add(side, kind, delta) {
+    if (state.result) return;
     const next = Math.max(0, state[side][kind] + delta);
     if (next === state[side][kind]) return;
     history.push(snapshot());
@@ -290,6 +391,7 @@
   }
 
   function undo() {
+    if (state.result) return;
     const prev = history.pop();
     if (!prev) return;
     Object.assign(state, JSON.parse(prev));
@@ -314,9 +416,18 @@
       const [a, b] = el.dataset.field.split(".");
       el.textContent = b ? state[a][b] : state[a];
     });
-    const lead = leader();
+    const res = state.result;
+    const winSide = res ? res.winner : timer.done ? leader() : null;
     document.querySelectorAll(".row").forEach(r =>
-      r.classList.toggle("winner", timer.done && r.dataset.side === lead));
+      r.classList.toggle("winner", r.dataset.side === winSide));
+    document.querySelectorAll(".result-tag").forEach(el =>
+      el.textContent = res && res.winner === el.dataset.side ? `Vencedor · ${res.method}` : "");
+    document.body.classList.toggle("finished", !!res);
+    finishBtn.textContent = res ? "Nova luta" : "Encerrar luta";
+    finishBtn.className = res ? "g" : "r";
+    for (const id of ["undo", "resetScores", "swap", "startBtn", "resetClock"])
+      document.getElementById(id).disabled = !!res;
+    resultsBtn.textContent = `Resultados (${results.length})`;
     renderClock();
     save();
   }
@@ -353,7 +464,7 @@
   }
 
   function toggleClock() {
-    if (timer.done) return;
+    if (timer.done || state.result) return;
     if (timer.running) {
       timer.running = false;
       cancelAnimationFrame(timer.raf);
@@ -386,6 +497,149 @@
     } catch {}
   }
 
+  // ---------- Finishing a fight ----------
+  const finishBtn = document.getElementById("finish");
+  const resultsBtn = document.getElementById("showResults");
+  const finishDlg = document.getElementById("finishDlg");
+  const resultsDlg = document.getElementById("resultsDlg");
+  const winnerPick = document.getElementById("winnerPick");
+  const methodPick = document.getElementById("methodPick");
+  const confirmFinish = document.getElementById("confirmFinish");
+  const METHODS = ["Pontos", "Vantagens", "Punições", "Finalização", "Decisão do árbitro", "Desclassificação", "W.O."];
+  let pick = { winner: null, method: null };
+
+  // How the leader is ahead on the board, if they are
+  function scoreMethod() {
+    const w = state.white, b = state.blue;
+    return w.points !== b.points ? "Pontos" : w.adv !== b.adv ? "Vantagens" : w.pen !== b.pen ? "Punições" : null;
+  }
+
+  const scoreLine = f => `${f.points} pts · ${f.adv} vant · ${f.pen} pun`;
+
+  function openFinish() {
+    if (timer.running) toggleClock();
+    const lead = leader();
+    pick = { winner: lead, method: lead ? scoreMethod() : null };
+    document.getElementById("finishSub").textContent = [state.stage, state.category].filter(Boolean).join(" · ");
+    winnerPick.querySelectorAll("button").forEach(btn => {
+      const f = state[btn.dataset.winner];
+      btn.querySelector(".nm").textContent = f.name;
+      btn.querySelector(".sc").textContent = scoreLine(f);
+    });
+    updatePick();
+    finishDlg.showModal();
+  }
+
+  function updatePick() {
+    winnerPick.classList.toggle("has-choice", !!pick.winner);
+    winnerPick.querySelectorAll("button").forEach(btn =>
+      btn.setAttribute("aria-pressed", btn.dataset.winner === pick.winner));
+    methodPick.querySelectorAll("button").forEach(btn =>
+      btn.setAttribute("aria-pressed", btn.textContent === pick.method));
+    confirmFinish.disabled = !(pick.winner && pick.method);
+  }
+
+  methodPick.replaceChildren(...METHODS.map(m => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = m;
+    btn.addEventListener("click", () => { pick.method = m; updatePick(); });
+    return btn;
+  }));
+  winnerPick.querySelectorAll("button").forEach(btn =>
+    btn.addEventListener("click", () => { pick.winner = btn.dataset.winner; updatePick(); }));
+
+  confirmFinish.addEventListener("click", () => {
+    if (!pick.winner || !pick.method) return;
+    results.unshift({
+      id: Date.now(),
+      at: Date.now(),
+      stage: state.stage,
+      category: state.category,
+      white: { ...state.white },
+      blue: { ...state.blue },
+      winner: pick.winner,
+      method: pick.method,
+      elapsedMs: Math.max(0, state.durationSec * 1000 - state.remainingMs),
+    });
+    saveResults();
+    state.result = { winner: pick.winner, method: pick.method };
+    finishDlg.close();
+    render();
+  });
+
+  function newFight() {
+    cancelAnimationFrame(timer.raf);
+    timer.running = false;
+    timer.done = false;
+    history.length = 0;
+    const d = defaults();
+    state.white = d.white;
+    state.blue = d.blue;
+    state.result = null;
+    state.durationSec = Math.max(1, Math.round(+durationInput.value || 5)) * 60;
+    state.remainingMs = state.durationSec * 1000;
+    render();
+  }
+
+  // ---------- Results list ----------
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+
+  function renderResults() {
+    document.getElementById("resultsEmpty").hidden = results.length > 0;
+    document.getElementById("clearResults").hidden = results.length === 0;
+    document.getElementById("resultsList").replaceChildren(...results.map((r, i) => {
+      const li = el("li");
+      const when = new Date(r.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      li.append(el("div", "meta", [`#${results.length - i}`, when, r.stage, r.category].filter(Boolean).join(" · ")));
+      for (const side of ["white", "blue"]) {
+        const f = r[side];
+        const row = el("div", `f ${side}${r.winner === side ? " win" : ""}`);
+        row.append(el("span", "chip"), el("span", "nm", f.team ? `${f.name} (${f.team})` : f.name),
+          el("span", "won", r.winner === side ? "venceu" : ""), el("span", "sc", scoreLine(f)));
+        li.append(row);
+      }
+      const foot = el("div", "foot");
+      const remove = el("button", "minus", "Remover");
+      remove.type = "button";
+      remove.addEventListener("click", () => {
+        results = results.filter(x => x.id !== r.id);
+        saveResults();
+        renderResults();
+        render();
+      });
+      foot.append(el("span", null, `${r.method} · tempo ${fmt(r.elapsedMs)}`), remove);
+      li.append(foot);
+      return li;
+    }));
+  }
+
+  // Clearing everything takes a second click within 3s
+  const clearBtn = document.getElementById("clearResults");
+  let clearArmed = 0;
+  clearBtn.addEventListener("click", () => {
+    if (!clearArmed) {
+      clearBtn.textContent = "Confirmar limpar?";
+      clearArmed = setTimeout(() => { clearArmed = 0; clearBtn.textContent = "Limpar lista"; }, 3000);
+      return;
+    }
+    clearTimeout(clearArmed);
+    clearArmed = 0;
+    clearBtn.textContent = "Limpar lista";
+    results = [];
+    saveResults();
+    renderResults();
+    render();
+  });
+
+  finishBtn.addEventListener("click", () => state.result ? newFight() : openFinish());
+  resultsBtn.addEventListener("click", () => { renderResults(); resultsDlg.showModal(); });
+
   // ---------- Wiring ----------
   document.querySelectorAll(".cell").forEach(cell => {
     const { side, kind } = cell.dataset;
@@ -413,11 +667,13 @@
   document.getElementById("resetClock").addEventListener("click", resetClock);
   document.getElementById("undo").addEventListener("click", undo);
   document.getElementById("resetScores").addEventListener("click", () => {
+    if (state.result) return;
     history.push(snapshot());
     for (const s of ["white", "blue"]) Object.assign(state[s], { points: 0, adv: 0, pen: 0 });
     render();
   });
   document.getElementById("swap").addEventListener("click", () => {
+    if (state.result) return;
     history.push(snapshot());
     [state.white, state.blue] = [state.blue, state.white];
     render();
@@ -426,7 +682,7 @@
     document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
   document.getElementById("fullscreen").addEventListener("click", toggleFullscreen);
   durationInput.value = Math.round(state.durationSec / 60);
-  durationInput.addEventListener("change", () => { if (!timer.running) resetClock(); });
+  durationInput.addEventListener("change", () => { if (!timer.running && !state.result) resetClock(); });
 
   const keys = {
     q: ["white", "points", 2], w: ["white", "points", 3], e: ["white", "points", 4],
@@ -436,6 +692,7 @@
   };
   document.addEventListener("keydown", e => {
     const t = e.target;
+    if (document.querySelector("dialog[open]")) return;
     if (t.isContentEditable || t.tagName === "INPUT") return;
     const key = e.key.toLowerCase();
     if ((e.ctrlKey || e.metaKey) && key === "z") { e.preventDefault(); undo(); return; }
