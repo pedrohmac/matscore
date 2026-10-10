@@ -55,6 +55,8 @@
     font-size: 17vmin; font-weight: 700; color: #fff;
     user-select: none; cursor: pointer; position: relative;
     transition: filter .1s;
+    min-width: 0; min-height: 0; overflow: hidden;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
   .cell:hover { filter: brightness(1.12); }
   .cell:active { filter: brightness(.9); }
@@ -122,9 +124,46 @@
   }
   .hint { opacity: .55; font-size: 11px; text-align: center; max-width: 340px; line-height: 1.4; }
   kbd { background: #333; border-radius: 3px; padding: 0 4px; font-size: 11px; }
+  .credit { grid-column: 1 / -1; text-align: center; font-size: 11px; opacity: .5; }
+  .credit a { color: inherit; }
+  .credit a:hover { opacity: 1; color: #fff; }
+  button { touch-action: manipulation; }
 
-  @media (max-width: 760px) {
-    .panel { grid-template-columns: 1fr; }
+  /* ---------- Touch devices ---------- */
+  @media (hover: none) {
+    .cell:hover, button:hover { filter: none; }
+    .hint-keys { display: none; }
+  }
+
+  /* ---------- Small screens: let the page scroll instead of squeezing the board ---------- */
+  @media (max-width: 760px), (max-height: 500px) {
+    html, body { height: auto; }
+    .board { flex: none; height: 100vh; height: 100svh; }
+    .panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px; }
+    .panel .center { grid-column: 1 / -1; order: -1; }
+    .panel .center .btns { justify-content: center; }
+    button { padding: 10px 12px; min-height: 42px; }
+    .center input { padding: 10px 6px; }
+  }
+
+  /* ---------- Phone portrait: name above, scores below ---------- */
+  @media (max-width: 760px) and (orientation: portrait) {
+    .board { height: 72vh; height: 72svh; min-height: 420px; grid-template-rows: 1fr 1fr auto; }
+    .row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+    .who { grid-column: 1 / -1; padding: 1.6vw 3vw; }
+    .name { font-size: 7.5vw; }
+    .team { font-size: 3.4vw; margin-top: .4vw; }
+    .cell { font-size: 21vw; }
+    .cell .lbl { font-size: 2.8vw; top: 1vw; left: 1.6vw; }
+    .row.winner .who { box-shadow: inset 2vw 0 0 #ffd400; }
+    .bottom { grid-template-columns: auto minmax(0, 1fr); }
+    .clock { font-size: 13vw; min-width: 0; margin: 1.6vw; padding: 1vw 3vw; }
+    .info { padding: 1.6vw 3vw 1.6vw 1vw; }
+    .stage { font-size: 4.6vw; }
+    .category { font-size: 3.2vw; }
   }
 </style>
 </head>
@@ -190,10 +229,12 @@
       <button id="fullscreen">Tela cheia</button>
     </div>
     <div class="hint">
-      Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis.<br>
+      Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis.
+      <span class="hint-keys"><br>
       <kbd>Espaço</kbd> tempo · <kbd>Q W E</kbd> branco +2/+3/+4 · <kbd>A</kbd>/<kbd>S</kbd> branco vant/pun ·
       <kbd>I O P</kbd> azul +2/+3/+4 · <kbd>K</kbd>/<kbd>L</kbd> azul vant/pun ·
       <kbd>Shift</kbd>+tecla subtrai · <kbd>Ctrl/⌘Z</kbd> desfazer · <kbd>H</kbd> ocultar painel · <kbd>F</kbd> tela cheia
+      </span>
     </div>
   </div>
 
@@ -212,6 +253,8 @@
       <button class="minus" data-add="pen:-1">−Pun</button>
     </div>
   </div>
+
+  <div class="credit">Feito por <a href="https://pedrohmac.com" target="_blank" rel="noopener">pedrohmac.com</a></div>
 </footer>
 
 <script>
