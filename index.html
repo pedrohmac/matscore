@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MatScore</title>
+<style>
+  :root {
+    --white-row: #f4f4f4;
+    --blue-row: #1f5fd1;
+    --green: #2f8a2a;
+    --yellow: #c9b42a;
+    --red: #d8261f;
+    --ink: #111;
+    --panel: #1b1d22;
+    --panel-2: #2a2d34;
+    --font: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: var(--font); }
+  body { display: flex; flex-direction: column; }
+
+  /* ---------- Scoreboard ---------- */
+  .board {
+    flex: 1;
+    display: grid;
+    grid-template-rows: 1fr 1fr 0.9fr;
+    gap: 0.6vmin;
+    padding: 0.6vmin;
+    min-height: 0;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17vw 17vw 12vw;
+    gap: 0.6vmin;
+    min-height: 0;
+  }
+  .who {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 2.5vw; min-width: 0;
+  }
+  .row.white .who { background: var(--white-row); color: var(--ink); }
+  .row.blue  .who { background: var(--blue-row); color: #fff; }
+  .name {
+    font-size: 6.2vmin; font-weight: 700; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    outline: none;
+  }
+  .team {
+    font-size: 2.6vmin; text-transform: uppercase; opacity: .8; margin-top: .6vmin;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; outline: none;
+  }
+  .cell {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17vmin; font-weight: 700; color: #fff;
+    user-select: none; cursor: pointer; position: relative;
+    transition: filter .1s;
+  }
+  .cell:hover { filter: brightness(1.12); }
+  .cell:active { filter: brightness(.9); }
+  .cell.points { background: var(--green); }
+  .cell.adv    { background: var(--yellow); }
+  .cell.pen    { background: var(--red); }
+  .cell .lbl {
+    position: absolute; top: .8vmin; left: 1vmin;
+    font-size: 1.8vmin; font-weight: 400; opacity: .75; letter-spacing: .05em;
+  }
+  .cell.bump { animation: bump .25s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+  .row.winner .who { box-shadow: inset 1.2vmin 0 0 #ffd400; }
+
+  .bottom {
+    display: grid; grid-template-columns: auto minmax(0, 1fr);
+    background: var(--red); min-height: 0;
+  }
+  .clock {
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: var(--ink); margin: 1.2vmin; padding: 0 4vw;
+    font-size: 16vmin; font-weight: 700; font-variant-numeric: tabular-nums;
+    cursor: pointer; user-select: none; min-width: 34vw;
+  }
+  .clock.running { color: var(--ink); }
+  .clock.paused  { color: #777; }
+  .clock.done    { animation: flash .5s steps(2) infinite; }
+  @keyframes flash { 50% { background: #000; color: #fff; } }
+  .info {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 2.5vw; min-width: 0;
+  }
+  .stage { font-size: 4.4vmin; font-weight: 700; text-transform: uppercase; outline: none; }
+  .category { font-size: 3vmin; text-transform: uppercase; opacity: .9; margin-top: .6vmin; outline: none; }
+
+  [contenteditable]:focus { box-shadow: 0 0 0 2px rgba(255,255,255,.6); border-radius: 2px; }
+  .row.white [contenteditable]:focus { box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
+
+  /* ---------- Operator panel ---------- */
+  .panel {
+    background: var(--panel); padding: 10px 12px;
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: start;
+    font-family: system-ui, sans-serif; font-size: 13px;
+  }
+  .panel.hidden { display: none; }
+  .side { display: grid; gap: 6px; }
+  .side h3 { margin: 0 0 2px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+  .side.white h3::before { content: ""; display: inline-block; width: 10px; height: 10px; background: #fff; margin-right: 6px; vertical-align: -1px; }
+  .side.blue  h3::before { content: ""; display: inline-block; width: 10px; height: 10px; background: var(--blue-row); margin-right: 6px; vertical-align: -1px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  button {
+    font: inherit; font-weight: 600; color: #fff; background: var(--panel-2);
+    border: 1px solid #3a3e47; border-radius: 6px; padding: 7px 11px; cursor: pointer;
+  }
+  button:hover { background: #363a43; }
+  button.g { background: var(--green); border-color: transparent; }
+  button.y { background: var(--yellow); border-color: transparent; color: #111; }
+  button.r { background: var(--red); border-color: transparent; }
+  button.minus { opacity: .75; }
+  .center { display: grid; gap: 6px; justify-items: center; }
+  .center input {
+    width: 70px; text-align: center; font: inherit; color: #fff;
+    background: var(--panel-2); border: 1px solid #3a3e47; border-radius: 6px; padding: 6px;
+  }
+  .hint { opacity: .55; font-size: 11px; text-align: center; max-width: 340px; line-height: 1.4; }
+  kbd { background: #333; border-radius: 3px; padding: 0 4px; font-size: 11px; }
+
+  @media (max-width: 760px) {
+    .panel { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<main class="board">
+  <section class="row white" data-side="white">
+    <div class="who">
+      <div class="name" contenteditable spellcheck="false" data-field="white.name"></div>
+      <div class="team" contenteditable spellcheck="false" data-field="white.team"></div>
+    </div>
+    <div class="cell points" data-side="white" data-kind="points" title="Clique +1 · Botão direito −1"><span class="lbl">PTS</span><span class="v"></span></div>
+    <div class="cell adv"    data-side="white" data-kind="adv"    title="Clique +1 · Botão direito −1"><span class="lbl">VANT</span><span class="v"></span></div>
+    <div class="cell pen"    data-side="white" data-kind="pen"    title="Clique +1 · Botão direito −1"><span class="lbl">PUN</span><span class="v"></span></div>
+  </section>
+
+  <section class="row blue" data-side="blue">
+    <div class="who">
+      <div class="name" contenteditable spellcheck="false" data-field="blue.name"></div>
+      <div class="team" contenteditable spellcheck="false" data-field="blue.team"></div>
+    </div>
+    <div class="cell points" data-side="blue" data-kind="points" title="Clique +1 · Botão direito −1"><span class="lbl">PTS</span><span class="v"></span></div>
+    <div class="cell adv"    data-side="blue" data-kind="adv"    title="Clique +1 · Botão direito −1"><span class="lbl">VANT</span><span class="v"></span></div>
+    <div class="cell pen"    data-side="blue" data-kind="pen"    title="Clique +1 · Botão direito −1"><span class="lbl">PUN</span><span class="v"></span></div>
+  </section>
+
+  <section class="bottom">
+    <div class="clock" id="clock" title="Clique para iniciar / pausar (Espaço)">0:00</div>
+    <div class="info">
+      <div class="stage" contenteditable spellcheck="false" data-field="stage"></div>
+      <div class="category" contenteditable spellcheck="false" data-field="category"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="panel" id="panel">
+  <div class="side white" data-side="white">
+    <h3>Branco</h3>
+    <div class="btns">
+      <button class="g" data-add="points:2" title="Queda / raspagem / joelho na barriga">+2</button>
+      <button class="g" data-add="points:3" title="Passagem de guarda">+3</button>
+      <button class="g" data-add="points:4" title="Montada / pegada nas costas">+4</button>
+      <button class="y" data-add="adv:1">+Vant</button>
+      <button class="r" data-add="pen:1">+Pun</button>
+    </div>
+    <div class="btns">
+      <button class="minus" data-add="points:-1">−1 Pt</button>
+      <button class="minus" data-add="adv:-1">−Vant</button>
+      <button class="minus" data-add="pen:-1">−Pun</button>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="btns">
+      <button id="startBtn">Iniciar</button>
+      <button id="resetClock">Zerar tempo</button>
+      <label>Min <input id="duration" type="number" min="1" max="20" step="1" value="5"></label>
+    </div>
+    <div class="btns">
+      <button id="undo">Desfazer</button>
+      <button id="resetScores">Zerar placar</button>
+      <button id="swap">Trocar lados</button>
+      <button id="fullscreen">Tela cheia</button>
+    </div>
+    <div class="hint">
+      Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis.<br>
+      <kbd>Espaço</kbd> tempo · <kbd>Q W E</kbd> branco +2/+3/+4 · <kbd>A</kbd>/<kbd>S</kbd> branco vant/pun ·
+      <kbd>I O P</kbd> azul +2/+3/+4 · <kbd>K</kbd>/<kbd>L</kbd> azul vant/pun ·
+      <kbd>Shift</kbd>+tecla subtrai · <kbd>Ctrl/⌘Z</kbd> desfazer · <kbd>H</kbd> ocultar painel · <kbd>F</kbd> tela cheia
+    </div>
+  </div>
+
+  <div class="side blue" data-side="blue">
+    <h3>Azul</h3>
+    <div class="btns">
+      <button class="g" data-add="points:2">+2</button>
+      <button class="g" data-add="points:3">+3</button>
+      <button class="g" data-add="points:4">+4</button>
+      <button class="y" data-add="adv:1">+Vant</button>
+      <button class="r" data-add="pen:1">+Pun</button>
+    </div>
+    <div class="btns">
+      <button class="minus" data-add="points:-1">−1 Pt</button>
+      <button class="minus" data-add="adv:-1">−Vant</button>
+      <button class="minus" data-add="pen:-1">−Pun</button>
+    </div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const STORE = "matscore.v2";
+  const defaults = () => ({
+    white: { name: "Atleta Um", team: "Equipe", points: 0, adv: 0, pen: 0 },
+    blue:  { name: "Atleta Dois", team: "Equipe", points: 0, adv: 0, pen: 0 },
+    stage: "Eliminatória",
+    category: "Master 3 / Masculino / Azul / Pena",
+    durationSec: 300,
+    remainingMs: 300000,
+  });
+
+  let state;
+  try { state = Object.assign(defaults(), JSON.parse(localStorage.getItem(STORE)) || {}); }
+  catch { state = defaults(); }
+  const history = [];
+
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {} };
+  const snapshot = () => JSON.stringify({ white: state.white, blue: state.blue });
+
+  // ---------- Scores ----------
+  function add(side, kind, delta) {
+    const next = Math.max(0, state[side][kind] + delta);
+    if (next === state[side][kind]) return;
+    history.push(snapshot());
+    if (history.length > 200) history.shift();
+    state[side][kind] = next;
+    render();
+    const cell = document.querySelector(`.cell[data-side="${side}"][data-kind="${kind}"]`);
+    cell.classList.remove("bump"); void cell.offsetWidth; cell.classList.add("bump");
+  }
+
+  function undo() {
+    const prev = history.pop();
+    if (!prev) return;
+    Object.assign(state, JSON.parse(prev));
+    render();
+  }
+
+  // Leader: points, then advantages, then fewer penalties
+  function leader() {
+    const w = state.white, b = state.blue;
+    const cmp = (w.points - b.points) || (w.adv - b.adv) || (b.pen - w.pen);
+    return cmp > 0 ? "white" : cmp < 0 ? "blue" : null;
+  }
+
+  function render() {
+    for (const side of ["white", "blue"]) {
+      for (const kind of ["points", "adv", "pen"]) {
+        document.querySelector(`.cell[data-side="${side}"][data-kind="${kind}"] .v`).textContent = state[side][kind];
+      }
+    }
+    document.querySelectorAll("[data-field]").forEach(el => {
+      if (document.activeElement === el) return;
+      const [a, b] = el.dataset.field.split(".");
+      el.textContent = b ? state[a][b] : state[a];
+    });
+    const lead = leader();
+    document.querySelectorAll(".row").forEach(r =>
+      r.classList.toggle("winner", timer.done && r.dataset.side === lead));
+    renderClock();
+    save();
+  }
+
+  // ---------- Clock ----------
+  const clockEl = document.getElementById("clock");
+  const startBtn = document.getElementById("startBtn");
+  const durationInput = document.getElementById("duration");
+  const timer = { running: false, endAt: 0, raf: 0, done: state.remainingMs <= 0 };
+
+  function fmt(ms) {
+    const s = Math.ceil(Math.max(0, ms) / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }
+
+  function renderClock() {
+    clockEl.textContent = fmt(state.remainingMs);
+    clockEl.className = "clock " + (timer.done ? "done" : timer.running ? "running" : "paused");
+    startBtn.textContent = timer.running ? "Pausar" : "Iniciar";
+  }
+
+  function tick() {
+    state.remainingMs = timer.endAt - performance.now();
+    if (state.remainingMs <= 0) {
+      state.remainingMs = 0;
+      timer.running = false;
+      timer.done = true;
+      buzzer();
+      render();
+      return;
+    }
+    renderClock();
+    timer.raf = requestAnimationFrame(tick);
+  }
+
+  function toggleClock() {
+    if (timer.done) return;
+    if (timer.running) {
+      timer.running = false;
+      cancelAnimationFrame(timer.raf);
+      save();
+    } else {
+      timer.running = true;
+      timer.endAt = performance.now() + state.remainingMs;
+      timer.raf = requestAnimationFrame(tick);
+    }
+    renderClock();
+  }
+
+  function resetClock() {
+    cancelAnimationFrame(timer.raf);
+    timer.running = false;
+    timer.done = false;
+    state.durationSec = Math.max(1, Math.round(+durationInput.value || 5)) * 60;
+    state.remainingMs = state.durationSec * 1000;
+    render();
+  }
+
+  function buzzer() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = "square"; osc.frequency.value = 440;
+      gain.gain.value = 0.25;
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 1.5);
+    } catch {}
+  }
+
+  // ---------- Wiring ----------
+  document.querySelectorAll(".cell").forEach(cell => {
+    const { side, kind } = cell.dataset;
+    cell.addEventListener("click", e => add(side, kind, e.shiftKey ? -1 : 1));
+    cell.addEventListener("contextmenu", e => { e.preventDefault(); add(side, kind, -1); });
+  });
+
+  document.querySelectorAll("[data-add]").forEach(btn => {
+    const side = btn.closest(".side").dataset.side;
+    const [kind, n] = btn.dataset.add.split(":");
+    btn.addEventListener("click", () => add(side, kind, +n));
+  });
+
+  document.querySelectorAll("[data-field]").forEach(el => {
+    el.addEventListener("input", () => {
+      const [a, b] = el.dataset.field.split(".");
+      if (b) state[a][b] = el.textContent; else state[a] = el.textContent;
+      save();
+    });
+    el.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); el.blur(); } });
+  });
+
+  clockEl.addEventListener("click", toggleClock);
+  startBtn.addEventListener("click", toggleClock);
+  document.getElementById("resetClock").addEventListener("click", resetClock);
+  document.getElementById("undo").addEventListener("click", undo);
+  document.getElementById("resetScores").addEventListener("click", () => {
+    history.push(snapshot());
+    for (const s of ["white", "blue"]) Object.assign(state[s], { points: 0, adv: 0, pen: 0 });
+    render();
+  });
+  document.getElementById("swap").addEventListener("click", () => {
+    history.push(snapshot());
+    [state.white, state.blue] = [state.blue, state.white];
+    render();
+  });
+  const toggleFullscreen = () =>
+    document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+  document.getElementById("fullscreen").addEventListener("click", toggleFullscreen);
+  durationInput.value = Math.round(state.durationSec / 60);
+  durationInput.addEventListener("change", () => { if (!timer.running) resetClock(); });
+
+  const keys = {
+    q: ["white", "points", 2], w: ["white", "points", 3], e: ["white", "points", 4],
+    a: ["white", "adv", 1],    s: ["white", "pen", 1],
+    i: ["blue", "points", 2],  o: ["blue", "points", 3],  p: ["blue", "points", 4],
+    k: ["blue", "adv", 1],     l: ["blue", "pen", 1],
+  };
+  document.addEventListener("keydown", e => {
+    const t = e.target;
+    if (t.isContentEditable || t.tagName === "INPUT") return;
+    const key = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && key === "z") { e.preventDefault(); undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code === "Space") { e.preventDefault(); toggleClock(); return; }
+    if (key === "h") { document.getElementById("panel").classList.toggle("hidden"); return; }
+    if (key === "f") { toggleFullscreen(); return; }
+    if (keys[key]) {
+      const [side, kind, n] = keys[key];
+      // Shift subtracts: 1 point for point keys, 1 for adv/pen
+      add(side, kind, e.shiftKey ? -1 : n);
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
