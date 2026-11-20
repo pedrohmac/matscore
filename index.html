@@ -139,6 +139,16 @@
   button { touch-action: manipulation; }
   button:disabled { opacity: .4; cursor: not-allowed; }
 
+  /* ---------- Mirror (view-only) ---------- */
+  body.view .panel { display: none; }
+  body.view .board { pointer-events: none; }
+  #mirrorStatus {
+    position: fixed; top: 8px; right: 8px; z-index: 5; padding: 4px 10px; border-radius: 999px;
+    background: rgba(0,0,0,.6); color: #fff; font: 600 12px system-ui, sans-serif; letter-spacing: .04em;
+  }
+  #mirrorStatus.on { background: var(--green); }
+  #mirror a { color: inherit; }
+
   /* ---------- Dialogs ---------- */
   .dlg {
     background: var(--panel); color: #fff; border: 1px solid #3a3e47; border-radius: 12px;
@@ -225,6 +235,8 @@
 </head>
 <body>
 
+<div id="mirrorStatus" hidden></div>
+
 <main class="board">
   <section class="row white" data-side="white">
     <div class="who">
@@ -290,6 +302,7 @@
       <button id="finish" class="r">Encerrar luta</button>
       <button id="showResults">Resultados</button>
     </div>
+    <div class="hint" id="mirror"></div>
     <div class="hint">
       Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis. <b>Encerrar luta</b> registra o resultado na lista.
       <span class="hint-keys"><br>
@@ -350,9 +363,11 @@
   </form>
 </dialog>
 
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (() => {
   const STORE = "matscore.v2";
+  const VIEW = (new URLSearchParams(location.search).get("view") || "").toUpperCase() || null;
   const defaults = () => ({
     white: { name: "Atleta Um", team: "Equipe", points: 0, adv: 0, pen: 0 },
     blue:  { name: "Atleta Dois", team: "Equipe", points: 0, adv: 0, pen: 0 },
@@ -368,7 +383,12 @@
   catch { state = defaults(); }
   const history = [];
 
-  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {} };
+  const conns = new Set();
+  const save = () => {
+    if (VIEW) return;
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {}
+    for (const c of conns) if (c.open) c.send(payload());
+  };
 
   const RESULTS = "matscore.results";
   let results;
@@ -473,6 +493,7 @@
       timer.running = true;
       timer.endAt = performance.now() + state.remainingMs;
       timer.raf = requestAnimationFrame(tick);
+      save();
     }
     renderClock();
   }
@@ -695,6 +716,7 @@
     if (document.querySelector("dialog[open]")) return;
     if (t.isContentEditable || t.tagName === "INPUT") return;
     const key = e.key.toLowerCase();
+    if (VIEW && key !== "f") return;
     if ((e.ctrlKey || e.metaKey) && key === "z") { e.preventDefault(); undo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.code === "Space") { e.preventDefault(); toggleClock(); return; }
@@ -706,6 +728,58 @@
       add(side, kind, e.shiftKey ? -1 : n);
     }
   });
+
+  // ---------- Mirror: one laptop scores, the other shows it (PeerJS data channel) ----------
+  // Clock travels as wall-clock endAt so the mirror ticks on its own between updates.
+  function payload() {
+    return { state, running: timer.running, done: timer.done,
+      endAt: timer.running ? Date.now() + state.remainingMs : 0 };
+  }
+  const ROOM = "matscore.room";
+  const newCode = () => Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.random() * 32 | 0]).join("");
+  const mirrorEl = document.getElementById("mirror");
+  const statusEl = document.getElementById("mirrorStatus");
+
+  function host(code) {
+    const peer = new Peer("matscore-" + code);
+    peer.on("open", () => {
+      localStorage.setItem(ROOM, code);
+      const url = `${location.origin}${location.pathname}?view=${code}`;
+      mirrorEl.replaceChildren("Espelhar em outro aparelho: ", Object.assign(el("a", null, url), { href: url, target: "_blank" }));
+    });
+    peer.on("connection", conn => {
+      conns.add(conn);
+      conn.on("open", () => conn.send(payload()));
+      conn.on("close", () => conns.delete(conn));
+    });
+    peer.on("error", e => { if (e.type === "unavailable-id") host(newCode()); else mirrorEl.textContent = "Espelho indisponível"; });
+  }
+
+  function view(code) {
+    document.body.classList.add("view");
+    document.querySelectorAll("[contenteditable]").forEach(n => n.contentEditable = "false");
+    statusEl.hidden = false;
+    const setStatus = (txt, on) => { statusEl.textContent = txt; statusEl.classList.toggle("on", on); };
+    const peer = new Peer();
+    const connect = () => {
+      setStatus(`Conectando a ${code}…`, false);
+      const conn = peer.connect("matscore-" + code);
+      conn.on("open", () => setStatus(`Espelho ${code}`, true));
+      conn.on("data", m => {
+        Object.assign(state, m.state);
+        cancelAnimationFrame(timer.raf);
+        timer.running = m.running; timer.done = m.done;
+        if (m.running) { timer.endAt = performance.now() + (m.endAt - Date.now()); timer.raf = requestAnimationFrame(tick); }
+        render();
+      });
+      conn.on("close", () => setTimeout(connect, 2000));
+    };
+    peer.on("open", connect);
+    peer.on("error", e => { if (e.type === "peer-unavailable") setTimeout(connect, 2000); else setStatus("Sem conexão", false); });
+  }
+
+  if (typeof Peer !== "undefined") VIEW ? view(VIEW) : host(localStorage.getItem(ROOM) || newCode());
+  else if (VIEW) { statusEl.hidden = false; statusEl.textContent = "Sem internet"; }
 
   render();
 })();
