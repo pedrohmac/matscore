@@ -133,7 +133,8 @@
   }
   .hint { opacity: .55; font-size: 11px; text-align: center; max-width: 340px; line-height: 1.4; }
   kbd { background: #333; border-radius: 3px; padding: 0 4px; font-size: 11px; }
-  .credit { grid-column: 1 / -1; text-align: center; font-size: 11px; opacity: .5; }
+  .side .hint { text-align: left; max-width: none; }
+  .credit { opacity: .5; }
   .credit a { color: inherit; }
   .credit a:hover { opacity: 1; color: #fff; }
   button { touch-action: manipulation; }
@@ -284,6 +285,10 @@
       <button class="minus" data-add="adv:-1">−Vant</button>
       <button class="minus" data-add="pen:-1">−Pun</button>
     </div>
+    <div class="hint">
+      Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis.
+      <span class="hint-keys"><br><kbd>Q W E</kbd> +2/+3/+4 · <kbd>A</kbd>/<kbd>S</kbd> vant/pun · <kbd>Shift</kbd>+tecla subtrai</span>
+    </div>
   </div>
 
   <div class="center">
@@ -303,14 +308,7 @@
       <button id="showResults">Resultados</button>
     </div>
     <div class="hint" id="mirror"></div>
-    <div class="hint">
-      Clique numa caixa do placar para +1, botão direito para −1. Nomes e informações da luta são editáveis. <b>Encerrar luta</b> registra o resultado na lista.
-      <span class="hint-keys"><br>
-      <kbd>Espaço</kbd> tempo · <kbd>Q W E</kbd> branco +2/+3/+4 · <kbd>A</kbd>/<kbd>S</kbd> branco vant/pun ·
-      <kbd>I O P</kbd> azul +2/+3/+4 · <kbd>K</kbd>/<kbd>L</kbd> azul vant/pun ·
-      <kbd>Shift</kbd>+tecla subtrai · <kbd>Ctrl/⌘Z</kbd> desfazer · <kbd>H</kbd> ocultar painel · <kbd>F</kbd> tela cheia
-      </span>
-    </div>
+    <div class="hint credit">Feito por <a href="https://pedrohmac.com" target="_blank" rel="noopener">pedrohmac.com</a></div>
   </div>
 
   <div class="side blue" data-side="blue">
@@ -327,9 +325,11 @@
       <button class="minus" data-add="adv:-1">−Vant</button>
       <button class="minus" data-add="pen:-1">−Pun</button>
     </div>
+    <div class="hint hint-keys">
+      <kbd>I O P</kbd> +2/+3/+4 · <kbd>K</kbd>/<kbd>L</kbd> vant/pun<br>
+      <kbd>Espaço</kbd> tempo · <kbd>Ctrl/⌘Z</kbd> desfazer · <kbd>H</kbd> ocultar painel · <kbd>F</kbd> tela cheia
+    </div>
   </div>
-
-  <div class="credit">Feito por <a href="https://pedrohmac.com" target="_blank" rel="noopener">pedrohmac.com</a></div>
 </footer>
 
 <dialog class="dlg" id="finishDlg">
